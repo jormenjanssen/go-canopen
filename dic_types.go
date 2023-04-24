@@ -1,7 +1,7 @@
 package canopen
 
 import (
-	"github.com/angelodlfrtr/go-canopen/utils"
+	"github.com/jormenjanssen/go-canopen/utils"
 )
 
 const (
