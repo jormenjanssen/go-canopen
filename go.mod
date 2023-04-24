@@ -1,4 +1,4 @@
-module github.com/angelodlfrtr/go-canopen
+module github.com/jormenjanssen/go-canopen
 
 go 1.17
 
