@@ -267,7 +267,7 @@ func (m *PDOMap) Read() error {
 
 	nofEntries := int(m.MapArray.FindIndex(0).GetData()[0])
 
-	for i := 1; i <= (nofEntries + 1); i++ {
+	for i := 1; i < (nofEntries + 1); i++ {
 		ii := uint16(i)
 		if err := m.MapArray.FindIndex(ii).Read(); err != nil {
 			return err
