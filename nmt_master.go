@@ -108,12 +108,14 @@ func (master *NMTMaster) ListenForHeartbeat() error {
 
 	// Listen for messages
 	go func() {
-		select {
-		case <-master.stopChan:
-			// Stop goroutine
-			return
-		case frm := <-framesChan.C:
-			master.handleHeartbeatFrame(frm)
+		for {
+			select {
+			case <-master.stopChan:
+				// Stop goroutine
+				return
+			case frm := <-framesChan.C:
+				master.handleHeartbeatFrame(frm)
+			}
 		}
 	}()
 
