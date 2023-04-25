@@ -142,7 +142,7 @@ func (master *NMTMaster) handleHeartbeatFrame(frm *can.Frame) {
 	master.Timestamp = &now
 
 	newState := int(frm.Data[0])
-	changed := &master.State != &newState
+	changed := int(*&master.State) != int(newState)
 
 	master.StateReceived = &newState
 
