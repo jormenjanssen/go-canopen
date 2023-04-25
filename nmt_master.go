@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/angelodlfrtr/go-can"
+	"github.com/google/uuid"
 )
 
 var NMTStates = map[int]string{
@@ -37,6 +38,17 @@ var NMTCommandToState = map[int]int{
 	130: 0,
 }
 
+type NMTState struct {
+	NodeID    int
+	State     int
+	Timestamp *time.Time
+}
+
+type NMTChangeChan struct {
+	chanID string
+	C      chan NMTState
+}
+
 type NMTMaster struct {
 	NodeID        int
 	Network       *Network
@@ -46,6 +58,8 @@ type NMTMaster struct {
 	Listening     bool
 	stopChan      chan bool
 
+	ChangeChans []*NMTChangeChan
+
 	// networkFramesChanID is used to store and later close the network frames channel
 	networkFramesChanID *string
 }
@@ -53,9 +67,10 @@ type NMTMaster struct {
 // NewNMTMaster return a new instance of Master
 func NewNMTMaster(nodeID int, network *Network) *NMTMaster {
 	return &NMTMaster{
-		NodeID:   nodeID,
-		Network:  network,
-		stopChan: make(chan bool, 1),
+		NodeID:      nodeID,
+		Network:     network,
+		stopChan:    make(chan bool, 1),
+		ChangeChans: []*NMTChangeChan{},
 	}
 }
 
@@ -127,6 +142,8 @@ func (master *NMTMaster) handleHeartbeatFrame(frm *can.Frame) {
 	master.Timestamp = &now
 
 	newState := int(frm.Data[0])
+	changed := &master.State != &newState
+
 	master.StateReceived = &newState
 
 	if newState == 0 {
@@ -135,7 +152,14 @@ func (master *NMTMaster) handleHeartbeatFrame(frm *can.Frame) {
 		master.State = newState
 	}
 
-	// @TODO: emit state
+	if changed {
+		for _, changeChan := range master.ChangeChans {
+			select {
+			case changeChan.C <- NMTState{NodeID: master.NodeID, State: master.State, Timestamp: master.Timestamp}:
+			default:
+			}
+		}
+	}
 }
 
 // SendCommand to target node
@@ -188,6 +212,51 @@ func (master *NMTMaster) WaitForBootup(timeout *time.Duration) error {
 
 		time.Sleep(time.Millisecond * 100)
 	}
+
+	return nil
+}
+
+// AcquireChangesChan create a new NMTChangeChan
+func (master *NMTMaster) AcquireChangesChan() *NMTChangeChan {
+	// Create frame chan
+	chanID := uuid.Must(uuid.NewRandom()).String()
+	changesChan := &NMTChangeChan{
+		chanID: chanID,
+		C:      make(chan NMTState),
+	}
+
+	// Append m.ChangeChans
+	master.ChangeChans = append(master.ChangeChans, changesChan)
+
+	return changesChan
+}
+
+// ReleaseChangesChan release (close) a NMTChangeChan
+func (master *NMTMaster) ReleaseChangesChan(id string) error {
+	var changesChan *NMTChangeChan
+	var changesChanIndex *int
+
+	for idx, fc := range master.ChangeChans {
+		if fc.chanID == id {
+			changesChan = fc
+			idxx := idx
+			changesChanIndex = &idxx
+			break
+		}
+	}
+
+	if changesChanIndex == nil {
+		return errors.New("no NMTChangeChan found with specified ID")
+	}
+
+	// Close chan
+	close(changesChan.C)
+
+	// Remove frameChan from network.FramesChans
+	master.ChangeChans = append(
+		master.ChangeChans[:*changesChanIndex],
+		master.ChangeChans[*changesChanIndex+1:]...,
+	)
 
 	return nil
 }
