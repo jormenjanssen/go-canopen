@@ -284,6 +284,10 @@ func (m *PDOMap) Read() error {
 		}
 
 		dicVar := m.PDONode.Node.ObjectDic.FindIndex(index)
+		if dicVar == nil {
+			continue
+		}
+
 		// Instead of dicVar.Size = size @TODO: use uint64 for size
 		dicVar.SetSize(int(size))
 
