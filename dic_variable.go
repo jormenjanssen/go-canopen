@@ -304,7 +304,13 @@ func (variable *DicVariable) GetByteVal() *byte {
 }
 
 func (variable *DicVariable) SetStringVal(a string) {
-	// @TODO
+	if variable.DataType == VisibleString {
+        aByte := []byte(a)
+        if len(aByte) > 4 {
+            aByte = aByte[:4]
+        }
+        variable.Data = aByte
+    }
 }
 
 func (variable *DicVariable) SetFloatVal(a float64) {
