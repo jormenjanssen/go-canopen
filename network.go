@@ -8,7 +8,7 @@ import (
 
 	"github.com/angelodlfrtr/go-can"
 	"github.com/google/uuid"
-	"github.com/jormenjanssen/go-canopen/utils"
+	"github.com/jaster-prj/go-canopen/utils"
 )
 
 // Network represent the global nodes network

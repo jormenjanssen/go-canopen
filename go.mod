@@ -1,6 +1,6 @@
-module github.com/jormenjanssen/go-canopen
+module github.com/jaster-prj/go-canopen
 
-go 1.19
+go 1.23.4
 
 require (
 	github.com/angelodlfrtr/go-can v0.0.4

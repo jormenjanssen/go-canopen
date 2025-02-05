@@ -10,7 +10,7 @@ import (
 
 	"github.com/angelodlfrtr/go-can"
 	"github.com/angelodlfrtr/go-can/transports"
-	canopen "github.com/jormenjanssen/go-canopen"
+	canopen "github.com/jaster-prj/go-canopen"
 )
 
 func getTestPort() string {
