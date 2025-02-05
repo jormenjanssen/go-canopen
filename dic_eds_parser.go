@@ -146,7 +146,7 @@ func buildVariable(
 		variable.DataType = byte(i)
 	}
 
-	if lowl, err := sec.GetKey("LowLimit"); err == nil {
+	if lowl, err := sec.GetKey("LowLimit"); err == nil && lowl.String() != "" {
 		i, err := lowl.Int()
 		if err != nil {
 			return nil, err
@@ -154,7 +154,7 @@ func buildVariable(
 		variable.Min = i
 	}
 
-	if howl, err := sec.GetKey("HighLimit"); err == nil {
+	if howl, err := sec.GetKey("HighLimit"); err == nil && howl.String() != "" {
 		i, err := howl.Int()
 		if err != nil {
 			return nil, err

@@ -1,4 +1,4 @@
-package canopen
+package tests
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/angelodlfrtr/go-can"
 	"github.com/angelodlfrtr/go-can/transports"
+	canopen "github.com/jormenjanssen/go-canopen"
 )
 
 func getTestPort() string {
@@ -20,7 +21,7 @@ func getTestPort() string {
 	return "/dev/tty.usbserial-1420"
 }
 
-func getNetwork() (*Network, error) {
+func getNetwork() (*canopen.Network, error) {
 	testPort := getTestPort()
 	transport := &transports.USBCanAnalyzer{
 		Port:     testPort,
@@ -33,7 +34,7 @@ func getNetwork() (*Network, error) {
 		return nil, err
 	}
 
-	netw, err := NewNetwork(bus)
+	netw, err := canopen.NewNetwork(bus)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func getNetwork() (*Network, error) {
 	return netw, nil
 }
 
-func searchNodes() ([]*Node, error) {
+func searchNodes() ([]*canopen.Node, error) {
 	network, err := getNetwork()
 	if err != nil {
 		return nil, err
@@ -90,8 +91,8 @@ func TestSearch(t *testing.T) {
 }
 
 func TestAddNode(t *testing.T) {
-	network := &Network{}
-	node := &Node{ID: 1}
+	network := &canopen.Network{}
+	node := &canopen.Node{ID: 1}
 	network.AddNode(node, nil, false)
 
 	if len(network.Nodes) != 1 {
@@ -100,8 +101,8 @@ func TestAddNode(t *testing.T) {
 }
 
 func TestGetNode(t *testing.T) {
-	network := &Network{}
-	node := &Node{ID: 1}
+	network := &canopen.Network{}
+	node := &canopen.Node{ID: 1}
 	network.AddNode(node, nil, false)
 
 	if len(network.Nodes) != 1 {
@@ -131,7 +132,7 @@ func TestAll(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	network, err := NewNetwork(bus)
+	network, err := canopen.NewNetwork(bus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,9 +165,9 @@ func TestAll(t *testing.T) {
 	for _, n := range nodes {
 		wg.Add(1)
 
-		go func(node *Node) {
+		go func(node *canopen.Node) {
 			// Parse eds file
-			dic := DicMustParse(DicEDSParse(objectDicFilePath))
+			dic := canopen.DicMustParse(canopen.DicEDSParse(objectDicFilePath))
 
 			network.AddNode(node, dic, false)
 
@@ -209,7 +210,7 @@ func TestReboot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	network, err := NewNetwork(bus)
+	network, err := canopen.NewNetwork(bus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,9 +245,9 @@ func TestReboot(t *testing.T) {
 	for _, n := range nodes {
 		wg.Add(1)
 
-		go func(node *Node) {
+		go func(node *canopen.Node) {
 			// Parse eds file
-			dic := DicMustParse(DicEDSParse(objectDicFilePath))
+			dic := canopen.DicMustParse(canopen.DicEDSParse(objectDicFilePath))
 
 			network.AddNode(node, dic, false)
 
