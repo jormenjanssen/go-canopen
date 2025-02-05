@@ -41,6 +41,16 @@ func NewSDOClient(node *Node) *SDOClient {
 	}
 }
 
+// GetRxCobId returns RxCobId
+func (sdoClient *SDOClient) GetRxCobId() uint32 {
+	return sdoClient.RXCobID
+}
+
+// GetTxCobId returns RxCobId
+func (sdoClient *SDOClient) GetTxCobId() uint32 {
+	return sdoClient.TXCobID
+}
+
 // SendRequest to network bus
 func (sdoClient *SDOClient) SendRequest(req []byte) error {
 	return sdoClient.Node.Network.Send(sdoClient.RXCobID, req)

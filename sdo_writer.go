@@ -8,6 +8,8 @@ import (
 )
 
 type ISDOClient interface {
+	GetRxCobId() uint32
+	GetTxCobId() uint32
 	FindName(name string) DicObject
 	Read(index uint16, subIndex uint8) ([]byte, error)
 	Send(req []byte, expectFunc networkFramesChanFilterFunc, timeout *time.Duration, retryCount *int) (*can.Frame, error)
@@ -155,6 +157,10 @@ func (writer *SDOWriter) writeBufferSegmented(cmd []byte, data []byte) error {
 		copy(buf[1:frameSize+1], data[writer.Pos:writer.Pos+frameSize])
 
 		expectFunc := func(frm *can.Frame) bool {
+			arbitrationId := frm.ArbitrationID
+			if arbitrationId != writer.SDOClient.GetTxCobId() {
+				return false
+			}
 			resCommand := frm.Data[0]
 			// Check response validity
 			if (resCommand & 0xE0) != SDOResponseSegmentDownload {
