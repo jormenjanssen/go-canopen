@@ -2,7 +2,6 @@ package canopen
 
 import (
 	"encoding/binary"
-	"fmt"
 	"time"
 
 	"github.com/angelodlfrtr/go-can"
@@ -149,7 +148,6 @@ func (writer *SDOWriter) writeBufferSegmented(cmd []byte, data []byte) error {
 		}
 		buf[0] = SDORequestSegmentDownload | writer.Toggle
 		frameSize := min(int(writer.Size)-writer.Pos, 7)
-		fmt.Println(frameSize)
 		if writer.Pos+frameSize >= int(writer.Size)-1 {
 			buf[0] = buf[0] | SDONoMoreData
 		}
