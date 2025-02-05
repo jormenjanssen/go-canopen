@@ -50,7 +50,7 @@ func (writer *SDOWriter) buildRequestDownloadBuf(data []byte, size *uint32) (str
 	buf[3] = writer.SubIndex
 
 	// Segmented download
-	if size == nil || ((size != nil) && *size > 4) || writer.ForceSegment {
+	if size == nil || (*size > 4) || writer.ForceSegment {
 		buf[0] = command
 		writer.Toggle = uint8(0x00)
 		writer.Size = uint32(len(data))

@@ -356,7 +356,7 @@ func (m *PDOMap) Save() error {
 	if len(m.Map) > 0 {
 		for i, dicVar := range m.Map {
 			subIndex := i + 1
-			val := ((((dicVar.GetIndex() << 16) | uint16(dicVar.GetSubIndex())) << 8) | uint16(dicVar.GetDataLen()))
+			val := (uint64((uint32(dicVar.GetIndex())<<16)|uint32(dicVar.GetSubIndex())) << 8) | uint64(dicVar.GetDataLen())
 			mm := m.MapArray.FindIndex(uint16(subIndex))
 			mm.SetUintVal(uint64(val))
 
