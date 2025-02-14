@@ -1,10 +1,10 @@
 module github.com/jormenjanssen/go-canopen
 
-go 1.19
+go 1.23
 
 require (
 	github.com/angelodlfrtr/go-can v0.0.4
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.6.0
 	gopkg.in/ini.v1 v1.67.0
 )
 

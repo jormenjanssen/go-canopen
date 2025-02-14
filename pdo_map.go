@@ -2,7 +2,8 @@ package canopen
 
 import (
 	"errors"
-	"reflect"
+
+	"slices"
 	"sync"
 	"time"
 
@@ -16,8 +17,9 @@ const (
 )
 
 type PDOMapChangeChan struct {
-	ID string
-	C  chan []byte
+	ID      string
+	C       chan []byte
+	ChangeF func([]byte, []byte) bool
 }
 
 type PDOMap struct {
@@ -141,16 +143,16 @@ func (m *PDOMap) Listen() error {
 				now := time.Now()
 				m.Timestamp = &now
 
-				// If data changed
-				if !reflect.DeepEqual(m.OldData, m.Data) {
-					for _, changeChan := range m.ChangeChans {
+				for _, changeChan := range m.ChangeChans {
+
+					// verify whether the data should be pushed according to the data change filter criteria.
+					if changeChan.ChangeF(m.OldData, m.Data) {
 						select {
 						case changeChan.C <- m.Data:
 						default:
 						}
 					}
 				}
-
 				m.Unlock()
 			}
 		}
@@ -179,8 +181,25 @@ func (m *PDOMap) AcquireChangesChan() *PDOMapChangeChan {
 	// Create frame chan
 	chanID := uuid.Must(uuid.NewRandom()).String()
 	changesChan := &PDOMapChangeChan{
-		ID: chanID,
-		C:  make(chan []byte),
+		ID:      chanID,
+		C:       make(chan []byte),
+		ChangeF: slices.Equal[[]byte],
+	}
+
+	// Append m.ChangeChans
+	m.ChangeChans = append(m.ChangeChans, changesChan)
+
+	return changesChan
+}
+
+// AcquireChangesChan create a new PDOMapChangeChan
+func (m *PDOMap) AcquireChangesChanWithFilter(changeF func([]byte, []byte) bool) *PDOMapChangeChan {
+	// Create frame chan
+	chanID := uuid.Must(uuid.NewRandom()).String()
+	changesChan := &PDOMapChangeChan{
+		ID:      chanID,
+		C:       make(chan []byte),
+		ChangeF: changeF,
 	}
 
 	// Append m.ChangeChans
