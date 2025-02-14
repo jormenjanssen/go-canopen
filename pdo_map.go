@@ -3,7 +3,6 @@ package canopen
 import (
 	"errors"
 
-	"slices"
 	"sync"
 	"time"
 
@@ -176,6 +175,18 @@ func (m *PDOMap) Unlisten() {
 	m.listening = false
 }
 
+func notEqual[S ~[]E, E comparable](s1, s2 S) bool {
+	if len(s1) != len(s2) {
+		return true
+	}
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return true
+		}
+	}
+	return false
+}
+
 // AcquireChangesChan create a new PDOMapChangeChan
 func (m *PDOMap) AcquireChangesChan() *PDOMapChangeChan {
 	// Create frame chan
@@ -183,7 +194,7 @@ func (m *PDOMap) AcquireChangesChan() *PDOMapChangeChan {
 	changesChan := &PDOMapChangeChan{
 		ID:      chanID,
 		C:       make(chan []byte),
-		ChangeF: slices.Equal[[]byte],
+		ChangeF: notEqual[[]byte],
 	}
 
 	// Append m.ChangeChans
