@@ -27,6 +27,28 @@ func main() {
 }
 ```
 
+## SDO abort handling
+
+When the SDO server answers a read or write with an abort transfer (for example
+because the object does not exist), the request is not retried and an
+`*canopen.SDOAbortError` is returned immediately. It carries the index, subindex
+and CiA 301 abort code of the rejected request, the `SDOAbort...` constants name
+the common codes.
+
+```go
+data, err := node.SDOClient.Read(0x2008, 1)
+
+var abortErr *canopen.SDOAbortError
+if errors.As(err, &abortErr) && abortErr.Code == canopen.SDOAbortObjectDoesNotExist {
+  // The node firmware does not implement 0x2008
+}
+```
+
+Only an abort sent on the server TX COB-ID (0x580 + node id) for the same index
+and subindex ends the request, frames of other nodes or objects are ignored.
+Without any matching answer the request is retried with a doubling timeout and
+finally fails with a timeout error.
+
 ## License
 
 Copyright (c) 2019 The go-canopen contributors

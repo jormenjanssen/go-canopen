@@ -188,11 +188,13 @@ func (network *Network) AcquireFramesChan(filterFunc networkFramesChanFilterFunc
 	defer network.Unlock()
 
 	// Create frame chan
+	// Publish never blocks, the buffer keeps a frame arriving before the receiver waits for it,
+	// like an SDO response sent right after the request
 	chanID := uuid.Must(uuid.NewRandom()).String()
 	frameChan := &NetworkFramesChan{
 		ID:     chanID,
 		Filter: filterFunc,
-		C:      make(chan *can.Frame),
+		C:      make(chan *can.Frame, 1),
 	}
 
 	// Append network.FramesChans

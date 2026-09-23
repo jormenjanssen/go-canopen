@@ -3,8 +3,6 @@ package canopen
 import (
 	"encoding/binary"
 	"errors"
-
-	"github.com/angelodlfrtr/go-can"
 )
 
 type SDOWriter struct {
@@ -74,28 +72,9 @@ func (writer *SDOWriter) RequestDownload(data []byte) error {
 		return errors.New("SDO segmented download not yet implemented")
 	}
 
-	expectFunc := func(frm *can.Frame) bool {
-		resCommand := frm.Data[0]
-		resIndex := binary.LittleEndian.Uint16(frm.Data[1:])
-		resSubindex := frm.Data[3]
+	expectFunc := writer.SDOClient.expectInitiateResponse(SDOResponseDownload, writer.Index, writer.SubIndex)
 
-		// Check response validity
-		if (resCommand & 0xE0) != SDOResponseDownload {
-			return false
-		}
-
-		if resIndex != writer.Index {
-			return false
-		}
-
-		if resSubindex != writer.SubIndex {
-			return false
-		}
-
-		return true
-	}
-
-	_, err := writer.SDOClient.Send(buf, &expectFunc, nil, nil)
+	_, err := writer.SDOClient.Send(buf, expectFunc, nil, nil)
 	return err
 }
 
