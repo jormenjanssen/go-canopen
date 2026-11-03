@@ -123,12 +123,21 @@ func (master *NMTMaster) ListenForHeartbeat() error {
 
 	// Listen for messages
 	go func() {
+		framesC := framesChan.C
+
 		for {
 			select {
 			case <-master.stopChan:
 				// Stop goroutine
 				return
-			case frm := <-framesChan.C:
+			case frm, ok := <-framesC:
+				if !ok {
+					// UnlistenForHeartbeat sends on stopChan before it releases the chan,
+					// stop receiving from the closed chan and consume that stop signal
+					framesC = nil
+					continue
+				}
+
 				master.handleHeartbeatFrame(frm)
 			}
 		}

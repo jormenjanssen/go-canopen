@@ -12,16 +12,21 @@ import (
 	"github.com/angelodlfrtr/go-can/transports"
 )
 
-func getTestPort() string {
-	if a := os.Getenv("CAN_TEST_PORT"); len(a) > 0 {
-		return a
+// getTestPort returns the port of the USB CAN analyzer used by the hardware tests,
+// the calling test is skipped when CAN_TEST_PORT is not set
+func getTestPort(t *testing.T) string {
+	t.Helper()
+
+	testPort := os.Getenv("CAN_TEST_PORT")
+	if len(testPort) == 0 {
+		t.Skip("CAN_TEST_PORT is not set, this test needs a USB CAN analyzer")
 	}
 
-	return "/dev/tty.usbserial-1420"
+	return testPort
 }
 
-func getNetwork() (*Network, error) {
-	testPort := getTestPort()
+func getNetwork(t *testing.T) (*Network, error) {
+	testPort := getTestPort(t)
 	transport := &transports.USBCanAnalyzer{
 		Port:     testPort,
 		BaudRate: 2000000,
@@ -45,8 +50,8 @@ func getNetwork() (*Network, error) {
 	return netw, nil
 }
 
-func searchNodes() ([]*Node, error) {
-	network, err := getNetwork()
+func searchNodes(t *testing.T) ([]*Node, error) {
+	network, err := getNetwork(t)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +68,7 @@ func searchNodes() ([]*Node, error) {
 }
 
 func TestSend(t *testing.T) {
-	network, err := getNetwork()
+	network, err := getNetwork(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +81,7 @@ func TestSend(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	nodes, err := searchNodes()
+	nodes, err := searchNodes(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +97,7 @@ func TestSearch(t *testing.T) {
 func TestAddNode(t *testing.T) {
 	network := &Network{}
 	node := &Node{ID: 1}
-	network.AddNode(node, nil, false)
+	network.AddNode(node, NewDicObjectDic(), false)
 
 	if len(network.Nodes) != 1 {
 		t.Fatal("Invalid network.Nodes len")
@@ -102,7 +107,7 @@ func TestAddNode(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	network := &Network{}
 	node := &Node{ID: 1}
-	network.AddNode(node, nil, false)
+	network.AddNode(node, NewDicObjectDic(), false)
 
 	if len(network.Nodes) != 1 {
 		t.Fatal("Invalid network.Nodes len")
@@ -119,7 +124,7 @@ func TestGetNode(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	testPort := getTestPort()
+	testPort := getTestPort(t)
 	transport := &transports.USBCanAnalyzer{
 		Port:     testPort,
 		BaudRate: 2000000,
@@ -197,7 +202,7 @@ func TestAll(t *testing.T) {
 }
 
 func TestReboot(t *testing.T) {
-	testPort := getTestPort()
+	testPort := getTestPort(t)
 	transport := &transports.USBCanAnalyzer{
 		Port:     testPort,
 		BaudRate: 2000000,

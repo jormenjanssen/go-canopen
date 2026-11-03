@@ -50,28 +50,9 @@ func (reader *SDOReader) buildRequestSegmentUploadBuf() []byte {
 
 // RequestUpload returns data if EXPEDITED, else nil
 func (reader *SDOReader) RequestUpload() ([]byte, error) {
-	expectFunc := func(frm *can.Frame) bool {
-		resCommand := frm.Data[0]
-		resIndex := binary.LittleEndian.Uint16(frm.Data[1:])
-		resSubindex := frm.Data[3]
+	expectFunc := reader.SDOClient.expectInitiateResponse(SDOResponseUpload, reader.Index, reader.SubIndex)
 
-		// Check response validity
-		if (resCommand & 0xE0) != SDOResponseUpload {
-			return false
-		}
-
-		if resIndex != reader.Index {
-			return false
-		}
-
-		if resSubindex != reader.SubIndex {
-			return false
-		}
-
-		return true
-	}
-
-	frm, err := reader.SDOClient.Send(reader.buildRequestUploadBuf(), &expectFunc, nil, nil)
+	frm, err := reader.SDOClient.Send(reader.buildRequestUploadBuf(), expectFunc, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +83,9 @@ func (reader *SDOReader) RequestUpload() ([]byte, error) {
 	return nil, nil
 }
 
-// Read segmented uploads
-func (reader *SDOReader) Read() (*can.Frame, error) {
+// expectSegmentUploadResponse returns a filter accepting upload segments sent by the SDO server,
+// or an abort transfer for the object being read
+func (reader *SDOReader) expectSegmentUploadResponse() networkFramesChanFilterFunc {
 	expectFunc := func(frm *can.Frame) bool {
 		if frm == nil {
 			return false
@@ -113,11 +95,21 @@ func (reader *SDOReader) Read() (*can.Frame, error) {
 			return false
 		}
 
-		resCommand := frm.Data[0]
-		return (resCommand & 0xE0) == SDOResponseSegmentUpload
+		resCommand := frm.Data[0] & sdoCommandSpecifierMask
+		if resCommand == SDOResponseSegmentUpload {
+			return true
+		}
+
+		// A segment carries no multiplexer, an abort carries the one of the aborted transfer
+		return resCommand == SDOAbortTransfer && sdoFrameMatchesObject(frm, reader.Index, reader.SubIndex)
 	}
 
-	return reader.SDOClient.Send(reader.buildRequestSegmentUploadBuf(), &expectFunc, nil, nil)
+	return &expectFunc
+}
+
+// Read segmented uploads
+func (reader *SDOReader) Read() (*can.Frame, error) {
+	return reader.SDOClient.Send(reader.buildRequestSegmentUploadBuf(), reader.expectSegmentUploadResponse(), nil, nil)
 }
 
 // ReadAll ..

@@ -18,10 +18,16 @@ const (
 	SDORequestSegmentDownload  uint8 = 0 << 5
 	SDOResponseSegmentDownload uint8 = 1 << 5
 
+	// SDOAbortTransfer is the command specifier of an abort transfer frame, sent by client or server
+	SDOAbortTransfer uint8 = 4 << 5
+
 	SDOExpedited     uint8 = 0x2
 	SDOSizeSpecified uint8 = 0x1
 	SDOToggleBit     uint8 = 0x10
 	SDONoMoreData    uint8 = 0x1
+
+	// sdoCommandSpecifierMask selects the command specifier bits of the first SDO frame byte
+	sdoCommandSpecifierMask uint8 = 0xE0
 )
 
 // SDOClient represent an SDO client
@@ -56,7 +62,31 @@ func (sdoClient *SDOClient) FindName(name string) DicObject {
 	return nil
 }
 
-// Send message and optionaly wait for response
+// expectInitiateResponse returns a filter accepting frames sent by the SDO server of this client
+// with the given response command specifier, or an abort transfer, for index and subIndex
+func (sdoClient *SDOClient) expectInitiateResponse(
+	responseCommand uint8,
+	index uint16,
+	subIndex uint8,
+) networkFramesChanFilterFunc {
+	expectFunc := func(frm *can.Frame) bool {
+		if frm == nil || frm.ArbitrationID != sdoClient.TXCobID {
+			return false
+		}
+
+		resCommand := frm.Data[0] & sdoCommandSpecifierMask
+		if resCommand != responseCommand && resCommand != SDOAbortTransfer {
+			return false
+		}
+
+		return sdoFrameMatchesObject(frm, index, subIndex)
+	}
+
+	return &expectFunc
+}
+
+// Send message and optionaly wait for response.
+// When the expected frame is an SDO abort transfer, retrying stops and an *SDOAbortError is returned.
 func (sdoClient *SDOClient) Send(
 	req []byte,
 	expectFunc networkFramesChanFilterFunc,
@@ -123,6 +153,11 @@ func (sdoClient *SDOClient) Send(
 	// If no frm, timeout execeded
 	if frm == nil {
 		return nil, errors.New("timeout execeded")
+	}
+
+	// The server refused the request, retrying will not change the answer
+	if (frm.Data[0] & sdoCommandSpecifierMask) == SDOAbortTransfer {
+		return nil, newSDOAbortError(frm)
 	}
 
 	return frm, nil
